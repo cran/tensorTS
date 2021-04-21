@@ -1,0 +1,16 @@
+637f344ca8ac0bafecb39b3418c32086 *DESCRIPTION
+faa1764be0c5301cdf2f035696c3f89c *NAMESPACE
+24622ddea9146b820853b64a9c88ddb5 *NEWS.md
+b9a966efef384241570bdd5aa83a8cba *R/helper.R
+3018778f4c0a4ffc87eeb1b029edb105 *R/tenAR.r
+f363ad9610ff91c58c3dafbbe76a3ad8 *R/tenFM.R
+b5e7632dc13ec05917148004bef674bd *README.md
+8ee37fe6c1f86eef78ef14d12c8500d5 *man/matAR.RR.est.Rd
+fc17c22df70a7c388dfc1e0469a989f9 *man/matAR.RR.se.Rd
+09a3513c760029b0aab67886a6c5e112 *man/mplot.Rd
+d1561b35809bec92e63900278625404b *man/tenAR.est.Rd
+2ce2d26c967a2c2d126ad406e035c72a *man/tenAR.predict.Rd
+c053bb1e61a585f19ba34e1268e87d1d *man/tenAR.sim.Rd
+76cb15d6929a31b0da2ae500d4c08169 *man/tenFM.est.Rd
+4b79550660c69ccb2e1f7e46d6bbec7b *man/tenFM.rank.Rd
+9e5437844c7eed3b951da97c5790b042 *man/tenFM.sim.Rd
