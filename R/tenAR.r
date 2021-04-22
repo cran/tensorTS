@@ -1302,6 +1302,7 @@ tenAR.bic <- function(xx, rmax=5){
 #'@aliases mplot
 #'@export
 #'@importFrom graphics par
+#'@importFrom graphics plot
 #'@param xx  \eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.
 #'@return a figure.
 #'@examples
