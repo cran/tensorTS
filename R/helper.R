@@ -1,14 +1,14 @@
 ### Helper functions
 
-myslice <- function(xx, K, start, end){
-  if (K==2){
-    return(xx[start:end,,,drop=FALSE])
-  } else if (K==3){
-    return(xx[start:end,,,,drop=FALSE])
-  } else {
-    stop("not support tensor mode K > 3")
-  }
-}
+# myslice <- function(xx, K, start, end){
+#   if (K==2){
+#     return(xx[start:end,,,drop=FALSE])
+#   } else if (K==3){
+#     return(xx[start:end,,,,drop=FALSE])
+#   } else {
+#     stop("not support tensor mode K > 3")
+#   }
+# }
 
 # mat projection
 matAR.PROJ <- function(xx, dim, r, t){
@@ -36,12 +36,20 @@ tl <- function(x, list_mat, k = NULL){
 # standard error extraction
 covtosd <- function(cov, dim, R){
   K <- length(dim)
-  sd <- lapply(1:R, function(n) {lapply(1:K, function(m) {list()})})
-  for (j in c(1:R)){
-    for (i in c(1:K)){
-      left <- sum(dim^2)*R + sum((dim^2)[1:(i-1)])+1
-      right <- sum(dim^2)*R + sum((dim^2)[1:i])
-      sd[[j]][[i]] <- array(diag(cov)[left:right], c(dim[i], dim[i]))
+  P <- length(R)
+  sd = list()
+  for (p in c(1:P)){
+    if (is.na(R[p])) stop("p != length(R)")
+    if (R[p] == 0) next
+    sd[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {list()})})
+  }
+  for (i in c(1:P)){
+    for (j in c(1:R[i])){
+      for (k in c(1:K)){
+        left <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[1:(k-1)])+1
+        right <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[1:k])
+        sd[[i]][[j]][[k]] <- array(sqrt(diag(cov)[left:right]), c(dim[k], dim[k]))
+      }
     }
   }
   return(sd)
@@ -136,7 +144,7 @@ projection <- function(M,r,m1,m2,n1,n2){
   RA.svd <- svd(RA,nu=r,nv=r)
   A <- list()
   for (i in c(1:r)){
-    A[[i]] <- list(matrix(RA.svd$v[,i], m2, n2),matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1))
+    A[[i]] <- list(matrix(RA.svd$v[,i], m2, n2), matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1))
   }
   for (j in c(1:r)){
     A[[j]] <- rev(A[[j]])
@@ -254,13 +262,11 @@ fro.order <- function(A){
   return(A)
 }
 
-ten.dis.A <- function(A, B){
-  P = length(A)
-  R <- length(A[[1]])
-  K <- length(A[[1]][[1]])
+ten.dis.A <- function(A, B, R, K){
+  P = length(R)
   dis <- 0
   for (p in c(1:P)){
-    for (r in c(1:R)){
+    for (r in c(1:R[p])){
       for (k in c(1:K)){
         dis <- dis + min(sum((A[[p]][[r]][[k]] - B[[p]][[r]][[k]])^2), sum((A[[p]][[r]][[k]] + B[[p]][[r]][[k]])^2))
       }
@@ -283,9 +289,9 @@ ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A[[l]][[n]], (c(1:K) + 1))}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
   }
-  res <- myslice(xx, K, 1+P, t) - L1
+  res <- abind::asub(xx, (1+P):(t), 1, drop=FALSE) - L1
   return(res)
 }
 
@@ -311,6 +317,9 @@ M.eigen <- function(A, R, P, dim){
   return(max(Mod(eigen(M, only.values = TRUE)$values)))
 }
 
+specRadius <- function(M){
+  return(max(Mod(eigen(M, only.values = TRUE)$values)))
+}
 
 likelihood <- function(xx, A, Sigma){
   r <- length(A[[1]])
@@ -330,11 +339,28 @@ likelihood <- function(xx, A, Sigma){
   return((l2 - l1)/2)
 }
 
-likelihood.lse <- function(fres, s, d, t){
 
+initializer <- function(xx, k1=1, k2=1){
+  PROJ = MAR1.PROJ(xx)
+  if (specRadius(PROJ$A1)*specRadius(PROJ$A2) < 1){
+    return(list(A1=PROJ$A1,A2=PROJ$A2))
+  }
+  MAR = MAR1.LS(xx)
+  if (specRadius(MAR$A1)*specRadius(MAR$A2) < 1){
+    return(list(A1=MAR$A1,A2=MAR$A2))
+  }
+  RRMAR = MAR1.RR(xx, k1, k2)
+  if (specRadius(MAR1.RR$A1)*specRadius(MAR1.RR$A2) < 1){
+    return(list(A1=MAR1.RR$A1,A2=MAR1.RR$A2))
+  }
+  stop('causality condition of initializer fails.')
+}
+
+
+
+likelihood.lse <- function(fres, s, d, t){
   l1 <- fres/2/s^2
   l2 <- -(t - 1)*d*log(2*pi*s^2)/2
-
   return(l2 - l1)
 }
 
